@@ -1,1 +1,6 @@
 @import "bootstrap/scss/bootstrap";
+
+.isInvalid {
+  border-color: red;
+  border-width: 2px;
+};
