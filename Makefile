@@ -7,5 +7,5 @@ lint:
 publish:
 		npm publish --dry-run && sudo npm link
 
-run:
-		clear & npm start
+start:
+		npm start
