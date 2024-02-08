@@ -1,6 +1,6 @@
 import 'bootstrap';
 import '../scss/styles.scss';
 
-import view from './view.js';
+import app from './application.js';
 
-view();
+app(document);
