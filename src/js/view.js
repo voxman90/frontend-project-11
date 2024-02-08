@@ -1,3 +1,5 @@
+/* eslint no-fallthrough: 0 */
+
 import { formStatus } from './model.js';
 
 class View {
@@ -58,14 +60,9 @@ class View {
         this.elems.feedback.textContent = this.i18n.t('success');
         break;
       }
-      case (formStatus.VALIDATION_FAILURE): {
+      case (formStatus.VALIDATION_FAILURE):
         this.elems.urlInput.classList.add('is-invalid');
-        this.elems.feedback.classList.add('text-danger');
-        this.elems.feedback.textContent = this.i18n.t(`errors.${errorCode}`);
-        break;
-      }
       case (formStatus.FAILURE): {
-        this.elems.urlInput.classList.add('is-invalid');
         this.elems.feedback.classList.add('text-danger');
         this.elems.feedback.textContent = this.i18n.t(`errors.${errorCode}`);
         break;
