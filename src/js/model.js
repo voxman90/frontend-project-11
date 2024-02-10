@@ -113,7 +113,7 @@ class Model {
   }
 
   static #isRequestSuccessfull = (response) => {
-    console.error(response.data.status);
+    document.body.insertAdjacentHTML('afterbegin', `<div>${JSON.stringify(response.data)}</div>`);
     const responseStatus = response.data.status.http_code;
     return (responseStatus >= 200 && responseStatus < 300);
   };
