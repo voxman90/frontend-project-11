@@ -42,21 +42,6 @@ const INITIAL_STATE = {
 
 const FEED_UPDATE_TIMEOUT_MS = 5000;
 
-const isResponseSuccessfull = (response) => {
-  const responseStatus = response.data.status.http_code;
-  return (responseStatus >= 200 && responseStatus < 300);
-};
-
-const getProxiedUrl = (path) => {
-  const baseURL = 'https://allorigins.hexlet.app/get';
-  const proxiedURL = new URL(baseURL);
-
-  proxiedURL.searchParams.set('disableCache', true);
-  proxiedURL.searchParams.set('url', path);
-
-  return proxiedURL.toString();
-};
-
 class Model {
   static #urlSchema = yup.string().required().url();
 
@@ -117,6 +102,22 @@ class Model {
     }
   }
 
+  static #getProxiedUrl(path) {
+    const baseURL = 'https://allorigins.hexlet.app/get';
+    const proxiedURL = new URL(baseURL);
+
+    proxiedURL.searchParams.set('disableCache', true);
+    proxiedURL.searchParams.set('url', path);
+
+    return proxiedURL.toString();
+  }
+
+  static #isRequestSuccessfull = (response) => {
+    console.error(response.data.status);
+    const responseStatus = response.data.status.http_code;
+    return (responseStatus >= 200 && responseStatus < 300);
+  };
+
   static #validateUrl(unknown) {
     return Model.#urlSchema.validate(unknown)
       .then((urlStr) => new URL(urlStr))
@@ -133,9 +134,9 @@ class Model {
   }
 
   static #sendHttpRequest(url) {
-    return axios.get(getProxiedUrl(url.toString()))
+    return axios.get(Model.#getProxiedUrl(url.toString()))
       .then((response) => {
-        if (isResponseSuccessfull(response)) {
+        if (Model.#isRequestSuccessfull(response)) {
           return response;
         }
 
