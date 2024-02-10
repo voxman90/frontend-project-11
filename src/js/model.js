@@ -47,7 +47,15 @@ const isResponseSuccessfull = (response) => {
   return (responseStatus >= 200 && responseStatus < 300);
 };
 
-const allOriginProxy = (urlStr) => `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(urlStr)}`;
+const getProxiedUrl = (path) => {
+  const baseURL = 'https://allorigins.hexlet.app/get';
+  const proxiedURL = new URL(baseURL);
+
+  proxiedURL.searchParams.set('disableCache', true);
+  proxiedURL.searchParams.set('url', path);
+
+  return proxiedURL.toString();
+};
 
 class Model {
   static #urlSchema = yup.string().required().url();
@@ -125,15 +133,18 @@ class Model {
   }
 
   static #sendHttpRequest(url) {
-    return axios.get(allOriginProxy(url.toString()))
+    return axios.get(getProxiedUrl(url.toString()))
       .then((response) => {
         if (isResponseSuccessfull(response)) {
           return response;
         }
 
-        throw new Error(response.data.status.http_code);
+        throw response.data.status.http_code;
       })
-      .catch(() => { throw errorCodes.NETWORK_ERROR; });
+      .catch((reason) => {
+        console.error(reason);
+        throw errorCodes.NETWORK_ERROR;
+      });
   }
 
   static #parseResponseDataToRssFeedData(responseData) {
@@ -216,7 +227,7 @@ class Model {
         Model.#sendHttpRequest(currFeedData.url.toString())
           .then((response) => Model.#parseResponseDataToRssFeedData(response.data))
           .then((feedData) => this.#addNewPosts(feedData, currFeedData))
-          .catch((reason) => { console.error(reason); })
+          .catch((reason) => { console.error('NETWORK_ERROR: ', reason); })
       )),
     )
       .then(() => {
