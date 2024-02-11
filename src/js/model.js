@@ -59,7 +59,7 @@ class Model {
       switch (path) {
         case ('ui.form.submitedValue'):
           if (this.state.requestStatus === requestStatus.READY) {
-            this.state.requestStatus = requestStatus.PENDING;
+            this.watchedState.requestStatus = requestStatus.PENDING;
 
             Model.#validateUrl(value)
               .then((url) => Model.#checkUniqnessOfUrl(url, this.#getFeedUrls()))
@@ -70,18 +70,16 @@ class Model {
               .catch((errorCode) => this.#processError(errorCode))
               .finally(() => {
                 this.state.ui.form.submitedValue = null;
-                this.state.requestStatus = requestStatus.READY;
-                this.view.render(this.state);
+                this.watchedState.requestStatus = requestStatus.READY;
+                this.view.render(path, this.state);
               });
           }
           break;
         case ('ui.posts.visitedPostsId'):
-          this.view.renderVisitedPosts(this.state.ui.posts.visitedPostsId);
-          break;
         case ('ui.modal.postId'):
-          this.view.renderModal(this.state);
-          break;
+        case ('requestStatus'):
         default:
+          this.view.render(path, this.state);
       }
     });
 
@@ -113,9 +111,13 @@ class Model {
   }
 
   static #isRequestSuccessfull = (response) => {
-    document.body.insertAdjacentHTML('afterbegin', `<div>${JSON.stringify(response.data)}</div>`);
-    const responseStatus = response.data.status.http_code;
-    return (responseStatus >= 200 && responseStatus < 300);
+    const { data } = response;
+    if (data.status) {
+      const responseCode = data.status.http_code;
+      return (responseCode >= 200 && responseCode < 300);
+    }
+
+    return Object.hasOwn(data, 'content');
   };
 
   static #validateUrl(unknown) {
@@ -233,7 +235,7 @@ class Model {
     )
       .then(() => {
         if (currPostsCount !== this.#getPostsCount()) {
-          this.view.render(this.state);
+          this.view.render('', this.state);
         }
 
         setTimeout(() => { this.#updateFeeds(); }, FEED_UPDATE_TIMEOUT_MS);
@@ -275,4 +277,4 @@ class Model {
 }
 
 export default Model;
-export { formStatus };
+export { formStatus, requestStatus };

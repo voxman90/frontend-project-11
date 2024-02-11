@@ -20,7 +20,7 @@ const app = (container) => {
         const model = new Model();
         controller.init(model, view);
         model.init(view);
-        view.init(container, controller, i18nextInstance);
+        view.init(container, i18nextInstance);
         controller.addEventListeners();
       });
     });
