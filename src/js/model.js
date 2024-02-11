@@ -163,11 +163,11 @@ class Model {
       }
 
       const rssFeedData = {
-        title: _.escape(xml.querySelector('channel > title').textContent),
-        description: _.escape(xml.querySelector('channel > description').textContent),
-        link: _.escape(xml.querySelector('channel > link')?.textContent ?? url),
+        title: _.escape(xml.querySelector('channel > title')?.textContent),
+        description: _.escape(xml.querySelector('channel > description')?.textContent),
+        link: _.escape(xml.querySelector('channel > link')?.textContent ?? url.toString()),
         pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent ?? new Date()),
-        url: new URL(url),
+        url,
         posts: Array.from(xml.querySelectorAll('item'))
           .map((item) => ({
             title: _.escape(item.querySelector('title').textContent),
