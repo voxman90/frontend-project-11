@@ -64,7 +64,7 @@ class Model {
             Model.#validateUrl(value)
               .then((url) => Model.#checkUniqnessOfUrl(url, this.#getFeedUrls()))
               .then((url) => Model.#sendHttpRequest(url))
-              .then((response) => Model.#parseResponseDataToRssFeedData(response.data))
+              .then((response) => Model.#parseResponseDataToRssFeedData(response))
               .then((rssFeedData) => this.#addRssFeed(rssFeedData))
               .then(() => this.#setFormStatus(formStatus.SUCCESS))
               .catch((errorCode) => this.#processError(errorCode))
@@ -139,10 +139,10 @@ class Model {
     return axios.get(Model.#getProxiedUrl(url.toString()))
       .then((response) => {
         if (Model.#isRequestSuccessfull(response)) {
-          return response;
+          return { ...response, url };
         }
 
-        throw response.data.status?.http_code ?? 'NETWORK ERROR';
+        throw response.data.status?.http_code ?? 'There is no http_code in the response';
       })
       .catch((reason) => {
         console.error(reason);
@@ -150,9 +150,11 @@ class Model {
       });
   }
 
-  static #parseResponseDataToRssFeedData(responseData) {
+  static #parseResponseDataToRssFeedData(response) {
+    const { data, url } = response;
+
     try {
-      const xml = new window.DOMParser().parseFromString(responseData.contents, 'text/xml');
+      const xml = new window.DOMParser().parseFromString(data.contents, 'text/xml');
 
       const hasParserErrorOccured = xml.querySelector('parsererror');
       if (hasParserErrorOccured) {
@@ -162,22 +164,19 @@ class Model {
       const rssFeedData = {
         title: xml.querySelector('channel > title').textContent,
         description: xml.querySelector('channel > description').textContent,
-        pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent),
-        url: new URL(responseData.status?.url ?? xml.querySelector('channel > link').textContent),
+        link: xml.querySelector('channel > link')?.textContent ?? url,
+        pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent ?? new Date()),
+        url: new URL(url),
         posts: Array.from(xml.querySelectorAll('item'))
           .map((item) => ({
             title: item.querySelector('title').textContent,
             description: item.querySelector('description').textContent,
             link: new URL(item.querySelector('link').textContent),
-            pubDate: new Date(item.querySelector('pubDate')?.textContent),
+            pubDate: new Date(item.querySelector('pubDate')?.textContent ?? new Date()),
           })),
       };
 
       const lastPostDate = new Date(rssFeedData.posts.at(0)?.pubDate ?? new Date());
-
-      if (rssFeedData.pubDate === null) {
-        rssFeedData.pubDate = lastPostDate;
-      }
 
       return { ...rssFeedData, lastPostDate };
     } catch {
@@ -228,7 +227,7 @@ class Model {
     Promise.allSettled(
       this.state.data.feeds.map((currFeedData) => (
         Model.#sendHttpRequest(currFeedData.url.toString())
-          .then((response) => Model.#parseResponseDataToRssFeedData(response.data))
+          .then((response) => Model.#parseResponseDataToRssFeedData(response))
           .then((feedData) => this.#addNewPosts(feedData, currFeedData))
           .catch((reason) => { console.error('NETWORK_ERROR: ', reason); })
       )),
