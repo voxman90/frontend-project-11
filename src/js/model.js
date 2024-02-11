@@ -123,21 +123,21 @@ class Model {
 
   static #validateUrl(unknown) {
     return Model.#urlSchema.validate(unknown)
-      .then((urlStr) => new URL(urlStr))
+      .then((url) => url)
       .catch(() => { throw errorCodes.INVALID_URL; });
   }
 
-  static #checkUniqnessOfUrl(urlObj, urls) {
-    const isProcessedUrl = urls.some((url) => urlObj.toString() === url.toString());
+  static #checkUniqnessOfUrl(checkedUrl, urls) {
+    const isProcessedUrl = urls.some((url) => checkedUrl === url);
     if (isProcessedUrl) {
       throw errorCodes.ALREADY_PROCESSED_URL;
     }
 
-    return urlObj;
+    return checkedUrl;
   }
 
   static #sendHttpRequest(url) {
-    return axios.get(Model.#getProxiedUrl(url.toString()))
+    return axios.get(Model.#getProxiedUrl(url))
       .then((response) => {
         if (Model.#isRequestSuccessfull(response)) {
           return { ...response, url };
@@ -165,14 +165,14 @@ class Model {
       const rssFeedData = {
         title: _.escape(xml.querySelector('channel > title')?.textContent),
         description: _.escape(xml.querySelector('channel > description')?.textContent),
-        link: _.escape(xml.querySelector('channel > link')?.textContent ?? url.toString()),
+        link: xml.querySelector('channel > link')?.textContent ?? url,
         pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent ?? new Date()),
         url,
         posts: Array.from(xml.querySelectorAll('item'))
           .map((item) => ({
             title: _.escape(item.querySelector('title').textContent),
             description: _.escape(item.querySelector('description').textContent),
-            link: new URL(item.querySelector('link').textContent),
+            link: item.querySelector('link').textContent,
             pubDate: new Date(item.querySelector('pubDate')?.textContent ?? new Date()),
           })),
       };
@@ -227,7 +227,7 @@ class Model {
     const currPostsCount = this.#getPostsCount();
     Promise.allSettled(
       this.state.data.feeds.map((currFeedData) => (
-        Model.#sendHttpRequest(currFeedData.url.toString())
+        Model.#sendHttpRequest(currFeedData.url)
           .then((response) => Model.#parseResponseDataToRssFeedData(response))
           .then((feedData) => this.#addNewPosts(feedData, currFeedData))
           .catch((reason) => { console.error('NETWORK_ERROR: ', reason); })
