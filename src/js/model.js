@@ -117,7 +117,7 @@ class Model {
       return (responseCode >= 200 && responseCode < 300);
     }
 
-    return Object.hasOwn(data, 'content');
+    return Object.hasOwn(data, 'contents');
   };
 
   static #validateUrl(unknown) {
@@ -142,7 +142,7 @@ class Model {
           return response;
         }
 
-        throw response.data.status.http_code;
+        throw response.data.status?.http_code ?? 'NETWORK ERROR';
       })
       .catch((reason) => {
         console.error(reason);
