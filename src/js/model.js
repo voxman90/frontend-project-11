@@ -153,11 +153,9 @@ class Model {
   static #parseResponseDataToRssFeedData(responseData) {
     try {
       const xml = new window.DOMParser().parseFromString(responseData.contents, 'text/xml');
-      document.body.insertAdjacentHTML('afterbegin', JSON.stringify(responseData.contents));
 
       const hasParserErrorOccured = xml.querySelector('parsererror');
       if (hasParserErrorOccured) {
-        document.body.insertAdjacentHTML('afterbegin', '<div>PARSEERRORS IN XML</div>');
         throw errorCodes.NOT_VALID_RSS_FEED;
       }
 
@@ -165,7 +163,7 @@ class Model {
         title: xml.querySelector('channel > title').textContent,
         description: xml.querySelector('channel > description').textContent,
         pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent),
-        url: new URL(responseData.status.url),
+        url: new URL(responseData.status?.url ?? xml.querySelector('channel > link').textContent),
         posts: Array.from(xml.querySelectorAll('item'))
           .map((item) => ({
             title: item.querySelector('title').textContent,
