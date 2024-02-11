@@ -153,6 +153,7 @@ class Model {
   static #parseResponseDataToRssFeedData(responseData) {
     try {
       const xml = new window.DOMParser().parseFromString(responseData.contents, 'text/xml');
+      document.body.insertAdjacentHTML('afterbegin', JSON.stringify(responseData.contents));
 
       const hasParserErrorOccured = xml.querySelector('parsererror');
       if (hasParserErrorOccured) {
