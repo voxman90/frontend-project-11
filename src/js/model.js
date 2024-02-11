@@ -157,6 +157,7 @@ class Model {
 
       const hasParserErrorOccured = xml.querySelector('parsererror');
       if (hasParserErrorOccured) {
+        document.body.insertAdjacentHTML('afterbegin', '<div>PARSEERRORS IN XML</div>');
         throw errorCodes.NOT_VALID_RSS_FEED;
       }
 
