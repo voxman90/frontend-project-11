@@ -1,6 +1,7 @@
 /* eslint no-console: 0 */
 /* eslint no-param-reassign: 0 */
 
+import _ from 'lodash';
 import * as yup from 'yup';
 import onChange from 'on-change';
 import axios from 'axios';
@@ -162,15 +163,15 @@ class Model {
       }
 
       const rssFeedData = {
-        title: xml.querySelector('channel > title').textContent,
-        description: xml.querySelector('channel > description').textContent,
-        link: xml.querySelector('channel > link')?.textContent ?? url,
+        title: _.escape(xml.querySelector('channel > title').textContent),
+        description: _.escape(xml.querySelector('channel > description').textContent),
+        link: _.escape(xml.querySelector('channel > link')?.textContent ?? url),
         pubDate: new Date(xml.querySelector('channel > pubDate')?.textContent ?? new Date()),
         url: new URL(url),
         posts: Array.from(xml.querySelectorAll('item'))
           .map((item) => ({
-            title: item.querySelector('title').textContent,
-            description: item.querySelector('description').textContent,
+            title: _.escape(item.querySelector('title').textContent),
+            description: _.escape(item.querySelector('description').textContent),
             link: new URL(item.querySelector('link').textContent),
             pubDate: new Date(item.querySelector('pubDate')?.textContent ?? new Date()),
           })),
