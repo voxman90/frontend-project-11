@@ -146,7 +146,7 @@ class Model {
         throw response.data.status?.http_code ?? 'There is no http_code in the response';
       })
       .catch((reason) => {
-        document.body.insertAdjacentHTML('afterbegin', `<h5>${reason}${JSON.stringify(reason)}</h5>)`);
+        console.error(reason);
         throw errorCodes.NETWORK_ERROR;
       });
   }

@@ -1,3 +1,5 @@
+/* eslint import/prefer-default-export: "off" */
+
 export const errorCodes = {
   INVALID_URL: 0,
   ALREADY_PROCESSED_URL: 1,

@@ -1,3 +1,5 @@
+/* eslint no-underscore-dangle: [2, { "allow": ["__filename", "__dirname"] }] */
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
