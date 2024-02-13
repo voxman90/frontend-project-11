@@ -40,11 +40,11 @@ const runApp = (container) => {
     .then(() => {
       document.addEventListener('DOMContentLoaded', () => {
         const elems = getElems(container);
-        const render = getRenderFunc(elems, i18nextInstance);
+        const view = getRenderFunc(elems, i18nextInstance);
         const state = structuredClone(INITIAL_STATE);
-        const watchedState = getWatchedState(state, render);
+        const watchedState = getWatchedState(state, view);
         addListeners(elems, watchedState);
-        updateFeeds(state, render);
+        updateFeeds(state, view);
       });
     });
 };
