@@ -3,182 +3,160 @@
 
 import { formStatus, requestStatus } from './model.js';
 
-class View {
-  #i18n;
+const clearForm = (elems) => {
+  elems.feedback.classList.remove('text-danger', 'text-success');
+  elems.urlInput.classList.remove('is-invalid');
+};
 
-  constructor() {
-    this.elems = {
-      modal: null,
-      rssForm: null,
-      urlInput: null,
-      submitButton: null,
-      feedback: null,
-      posts: null,
-      feeds: null,
-    };
-  }
+const toggleInput = (state, elems) => {
+  const isRequestPending = (state.requestStatus === requestStatus.PENDING);
+  elems.urlInput.readonly = isRequestPending;
+  elems.submitButton.disable = isRequestPending;
+};
 
-  init(container, i18nextInstance) {
-    this.#i18n = i18nextInstance;
+const renderForm = (state, elems, i18n) => {
+  const { status, errorCode } = state.ui.form;
 
-    this.elems.modal = container.querySelector('.modal');
-    this.elems.rssForm = container.querySelector('.rss-form');
-    this.elems.urlInput = this.elems.rssForm.querySelector('#url-input');
-    this.elems.submitButton = this.elems.rssForm.querySelector('button[type="submit"]');
-    this.elems.feedback = container.querySelector('.feedback');
-    this.elems.posts = container.querySelector('.posts');
-    this.elems.feeds = container.querySelector('.feeds');
-  }
+  clearForm(elems);
 
-  render(path, appState) {
-    switch (path) {
-      case ('ui.form.submitedValue'):
-        this.#renderAll(appState);
-        break;
-      case ('requestStatus'):
-        this.#toggleInput(appState);
-        break;
-      case ('ui.posts.visitedPostsId'):
-        this.#renderVisitedPosts(appState);
-        break;
-      case ('ui.modal.postId'):
-        this.#renderModal(appState);
-        break;
-      default:
-        this.#renderAll(appState);
+  switch (status) {
+    case (formStatus.SUCCESS): {
+      elems.rssForm.reset();
+      elems.urlInput.focus();
+      elems.feedback.classList.add('text-success');
+      elems.feedback.textContent = i18n.t('success');
+      break;
     }
+    case (formStatus.VALIDATION_FAILURE):
+      elems.urlInput.classList.add('is-invalid');
+    case (formStatus.FAILURE): {
+      elems.feedback.classList.add('text-danger');
+      elems.feedback.textContent = i18n.t(`errors.${errorCode}`);
+      break;
+    }
+    default:
   }
+};
 
-  static #renderList(container, list) {
-    container.innerHTML = '';
+const renderFeed = (feedData) => {
+  const { title, description } = feedData;
 
-    const html = `
-      <div class="card border-0">
-        <div class="card-body">
-          <h2 class="card-title h4">${list.title}</h2>
-        </div>
-        <ul class="list-group border-0 rounded-0">
-          ${list.items.reduce((str, item) => `${list.renderItem(item)}${str}`, '')}
-        </ul>
-      </div>
-    `;
+  return `
+    <li class="list-group-item border-0 border-end-0">
+      <h3 class="h6 m-0">${title}</h3>
+      <p class="m-0 small text-black-50">${description}</p>
+    </li>
+  `;
+};
 
-    container.insertAdjacentHTML('afterbegin', html);
-  }
+const renderPost = (postData, i18n) => {
+  const { title, id, link } = postData;
 
-  static #renderFeed(feedData) {
-    const { title, description } = feedData;
-
-    return `
-      <li class="list-group-item border-0 border-end-0">
-        <h3 class="h6 m-0">${title}</h3>
-        <p class="m-0 small text-black-50">${description}</p>
-      </li>
-    `;
-  }
-
-  static #renderPost(postData, i18n) {
-    const { title, id, link } = postData;
-
-    return `
-      <li class="list-group-item d-flex justify-content-between align-items-start border-0 border-end-0">
-        <a href="${link.toString()}" class="fw-bold" data-id="${id}" target="_blank" rel="noopener noreferrer">${title}</a>
-        <button type="button" class="btn btn-outline-primary btn-sm" data-id="${id}" data-bs-toggle="modal"\
+  return `
+    <li class="list-group-item d-flex justify-content-between align-items-start border-0 border-end-0">
+      <a href="${link}" class="fw-bold" data-id="${id}" target="_blank" rel="noopener noreferrer">${title}</a>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-id="${id}" data-bs-toggle="modal"\
 data-bs-target="#modal">${i18n.t('postViewButton')}</button>
-      </li>
-    `;
-  }
+    </li>
+  `;
+};
 
-  static #makeList(title, items, renderItem) {
-    return ({ title, items, renderItem });
-  }
+const renderList = (container, list) => {
+  container.innerHTML = '';
 
-  #renderAll(appState) {
-    this.#renderForm(appState);
+  const html = `
+    <div class="card border-0">
+      <div class="card-body">
+        <h2 class="card-title h4">${list.title}</h2>
+      </div>
+      <ul class="list-group border-0 rounded-0">
+        ${list.items.reduce((str, item) => `${list.renderItem(item)}${str}`, '')}
+      </ul>
+    </div>
+  `;
 
-    const { feeds } = appState.data;
-    if (feeds.length !== 0) {
-      this.#renderFeeds(appState);
-      this.#renderPosts(appState);
-      this.#renderVisitedPosts(appState);
-    }
-  }
+  container.insertAdjacentHTML('afterbegin', html);
+};
 
-  #toggleInput(appState) {
-    const isRequestPending = (appState.requestStatus === requestStatus.PENDING);
-    this.elems.urlInput.readonly = isRequestPending;
-    this.elems.submitButton.disable = isRequestPending;
-  }
+const makeList = (title, items, renderItem) => ({ title, items, renderItem });
 
-  #renderForm(appState) {
-    const { status, errorCode } = appState.ui.form;
+const renderFeeds = (state, elems, i18n) => {
+  renderList(
+    elems.feeds,
+    makeList(i18n.t('feeds'), state.data.feeds, renderFeed),
+  );
+};
 
-    this.#clearForm();
+const renderPosts = (state, elems, i18n) => {
+  renderList(
+    elems.posts,
+    makeList(i18n.t('posts'), state.data.posts, (data) => renderPost(data, i18n)),
+  );
+};
 
-    switch (status) {
-      case (formStatus.SUCCESS): {
-        this.elems.rssForm.reset();
-        this.elems.urlInput.focus();
-        this.elems.feedback.classList.add('text-success');
-        this.elems.feedback.textContent = this.#i18n.t('success');
-        break;
+const renderVisitedPosts = (state, elems) => {
+  const { visitedPostsId } = state.ui;
+
+  Array.from(elems.posts.querySelectorAll('a'))
+    .forEach((aElem) => {
+      const aElemId = aElem.dataset.id;
+
+      if (visitedPostsId.includes(aElemId)) {
+        aElem.classList.remove('fw-bold');
+        aElem.classList.add('fw-normal', 'link-secondary');
       }
-      case (formStatus.VALIDATION_FAILURE):
-        this.elems.urlInput.classList.add('is-invalid');
-      case (formStatus.FAILURE): {
-        this.elems.feedback.classList.add('text-danger');
-        this.elems.feedback.textContent = this.#i18n.t(`errors.${errorCode}`);
-        break;
-      }
-      default:
-    }
+    });
+};
+
+const renderAll = (state, elems, i18n) => {
+  renderForm(state, elems, i18n);
+
+  if (state.data.feeds.length !== 0) {
+    renderFeeds(state, elems, i18n);
+    renderPosts(state, elems, i18n);
+    renderVisitedPosts(state, elems);
   }
+};
 
-  #clearForm() {
-    this.elems.feedback.classList.remove('text-danger', 'text-success');
-    this.elems.urlInput.classList.remove('is-invalid');
+const renderModal = (state, elems) => {
+  const relatedPost = state.data.posts.find(({ id }) => id === state.ui.modal.postId);
+
+  const { title, description, link } = relatedPost;
+  elems.modal.querySelector('.modal-title').textContent = title;
+  elems.modal.querySelector('.modal-body').textContent = description;
+  elems.modal.querySelector('.modal-footer > a').setAttribute('href', link);
+};
+
+const getElems = (container) => ({
+  modal: container.querySelector('.modal'),
+  rssForm: container.querySelector('.rss-form'),
+  urlInput: container.querySelector('#url-input'),
+  submitButton: container.querySelector('.rss-form button[type="submit"]'),
+  feedback: container.querySelector('.feedback'),
+  posts: container.querySelector('.posts'),
+  feeds: container.querySelector('.feeds'),
+});
+
+const getRenderFunc = (elems, i18n) => (state, path) => {
+  switch (path) {
+    case ('ui.form.submitedValue'):
+      renderAll(state, elems, i18n);
+      break;
+    case ('requestStatus'):
+      toggleInput(state, elems, i18n);
+      break;
+    case ('ui.visitedPostsId'):
+      renderVisitedPosts(state, elems, i18n);
+      break;
+    case ('ui.modal.postId'):
+      renderModal(state, elems, i18n);
+      break;
+    default:
+      renderAll(state, elems, i18n);
   }
+};
 
-  #renderVisitedPosts(appState) {
-    const { visitedPostsId } = appState.ui.posts;
-
-    if (visitedPostsId.length === 0) return;
-
-    Array.from(this.elems.posts.querySelectorAll('a'))
-      .forEach((aElem) => {
-        const aElemId = parseInt(aElem.dataset.id, 10);
-        if (visitedPostsId.includes(aElemId)) {
-          aElem.classList.remove('fw-bold');
-          aElem.classList.add('fw-normal', 'link-secondary');
-        }
-      });
-  }
-
-  #renderFeeds(appState) {
-    View.#renderList(
-      this.elems.feeds,
-      View.#makeList(this.#i18n.t('feeds'), appState.data.feeds, View.#renderFeed),
-    );
-  }
-
-  #renderPosts(appState) {
-    View.#renderList(
-      this.elems.posts,
-      View.#makeList(this.#i18n.t('posts'), appState.data.posts, (data) => View.#renderPost(data, this.#i18n)),
-    );
-  }
-
-  #renderModal(appState) {
-    const { postId } = appState.ui.modal;
-    if (postId === null) return;
-
-    const relatedPost = appState.data.posts.find(({ id }) => id === postId);
-
-    const { title, description, link } = relatedPost;
-    this.elems.modal.querySelector('.modal-title').textContent = title;
-    this.elems.modal.querySelector('.modal-body').textContent = description;
-    this.elems.modal.querySelector('.modal-footer > a').setAttribute('href', link.toString());
-  }
-}
-
-export default View;
+export {
+  getRenderFunc,
+  getElems,
+};

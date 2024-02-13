@@ -1,8 +1,13 @@
 import i18next from 'i18next';
 
-import Model from './model.js';
-import View from './view.js';
-import Controller from './controller.js';
+import {
+  getWatchedState,
+  updateFeeds,
+  formStatus,
+  requestStatus,
+} from './model.js';
+import { getElems, getRenderFunc } from './view.js';
+import addListeners from './controller.js';
 import resources from './locals/index.js';
 
 const i18nextConfig = {
@@ -10,20 +15,38 @@ const i18nextConfig = {
   resources,
 };
 
-const app = (container) => {
+const INITIAL_STATE = {
+  ui: {
+    form: {
+      status: formStatus.DEFAULT,
+      submitedValue: null,
+      errorCode: null,
+    },
+    visitedPostsId: [],
+    modal: {
+      postId: null,
+    },
+  },
+  requestStatus: requestStatus.READY,
+  data: {
+    posts: [],
+    feeds: [],
+  },
+};
+
+const runApp = (container) => {
   const i18nextInstance = i18next.createInstance();
   i18nextInstance.init(i18nextConfig)
     .then(() => {
       document.addEventListener('DOMContentLoaded', () => {
-        const controller = new Controller();
-        const view = new View();
-        const model = new Model();
-        controller.init(model, view);
-        model.init(view);
-        view.init(container, i18nextInstance);
-        controller.addEventListeners();
+        const elems = getElems(container);
+        const render = getRenderFunc(elems, i18nextInstance);
+        const state = structuredClone(INITIAL_STATE);
+        const watchedState = getWatchedState(state, render);
+        addListeners(elems, watchedState);
+        updateFeeds(state, render);
       });
     });
 };
 
-export default app;
+export default runApp;

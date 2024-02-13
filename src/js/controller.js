@@ -1,41 +1,24 @@
-class Controller {
-  constructor() {
-    this.model = null;
-    this.view = null;
-  }
+/* eslint no-param-reassign: 0 */
 
-  init(model, view) {
-    this.model = model;
-    this.view = view;
-  }
+const addListeners = (elems, watchedState) => {
+  elems.rssForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(elems.rssForm);
+    const url = formData.get('url');
+    watchedState.ui.form.submitedValue = url;
+  });
 
-  addEventListeners() {
-    const { elems } = this.view;
+  elems.posts.addEventListener('click', (e) => {
+    if (['BUTTON', 'A'].includes(e.target.tagName)) {
+      watchedState.ui.visitedPostsId.push(e.target.dataset.id);
+    }
+  });
 
-    elems.rssForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const formData = new FormData(elems.rssForm);
-      const url = formData.get('url');
-      this.model.addRssFeed(url);
-    });
+  elems.posts.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') {
+      watchedState.ui.modal.postId = e.target.dataset.id;
+    }
+  });
+};
 
-    elems.posts.addEventListener('click', (e) => {
-      switch (e.target.tagName) {
-        case 'BUTTON': {
-          const postId = parseInt(e.target.dataset.id, 10);
-          this.model.addPostToVisited(postId);
-          this.model.setModalContent(postId);
-          break;
-        }
-        case 'A': {
-          const postId = parseInt(e.target.dataset.id, 10);
-          this.model.addPostToVisited(postId);
-          break;
-        }
-        default:
-      }
-    });
-  }
-}
-
-export default Controller;
+export default addListeners;
