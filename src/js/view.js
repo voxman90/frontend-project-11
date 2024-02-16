@@ -3,35 +3,30 @@
 
 import { formStatus, requestStatus } from './model.js';
 
-const clearForm = (elems) => {
-  elems.feedback.classList.remove('text-danger', 'text-success');
-  elems.urlInput.classList.remove('is-invalid');
-};
-
 const toggleInput = (state, elems) => {
   const isRequestPending = (state.requestStatus === requestStatus.PENDING);
   elems.urlInput.readonly = isRequestPending;
-  elems.submitButton.disable = isRequestPending;
+  elems.submitButton.disabled = isRequestPending;
 };
 
 const renderForm = (state, elems, i18n) => {
   const { status, errorCode } = state.ui.form;
 
-  clearForm(elems);
+  elems.feedback.classList.remove('text-danger', 'text-success');
+  elems.urlInput.classList.remove('is-invalid');
 
   switch (status) {
-    case (formStatus.SUCCESS): {
+    case (formStatus.SUCCESS):
       elems.rssForm.reset();
       elems.urlInput.focus();
       elems.feedback.classList.add('text-success');
-      elems.feedback.textContent = i18n.t('success');
+      elems.feedback.textContent = i18n.t('feedback.success');
       break;
-    }
     case (formStatus.VALIDATION_FAILURE):
       elems.urlInput.classList.add('is-invalid');
     case (formStatus.FAILURE): {
       elems.feedback.classList.add('text-danger');
-      elems.feedback.textContent = i18n.t(`errors.${errorCode}`);
+      elems.feedback.textContent = i18n.t(`feedback.errors.${errorCode}`);
       break;
     }
     default:
@@ -41,41 +36,70 @@ const renderForm = (state, elems, i18n) => {
 const renderFeed = (feedData) => {
   const { title, description } = feedData;
 
-  return `
-    <li class="list-group-item border-0 border-end-0">
-      <h3 class="h6 m-0">${title}</h3>
-      <p class="m-0 small text-black-50">${description}</p>
-    </li>
-  `;
+  const feedElem = document.createElement('li');
+  feedElem.className = 'list-group-item border-0 border-end-0';
+
+  const titleElem = document.createElement('h3');
+  titleElem.className = 'h6 m-0';
+  titleElem.textContent = title;
+
+  const descriptionElem = document.createElement('p');
+  descriptionElem.className = 'm-0 small text-black-50';
+  descriptionElem.textContent = description;
+
+  feedElem.append(titleElem, descriptionElem);
+
+  return feedElem;
 };
 
 const renderPost = (postData, i18n) => {
   const { title, id, link } = postData;
 
-  return `
-    <li class="list-group-item d-flex justify-content-between align-items-start border-0 border-end-0">
-      <a href="${link}" class="fw-bold" data-id="${id}" target="_blank" rel="noopener noreferrer">${title}</a>
-      <button type="button" class="btn btn-outline-primary btn-sm" data-id="${id}" data-bs-toggle="modal"\
-data-bs-target="#modal">${i18n.t('postViewButton')}</button>
-    </li>
-  `;
+  const postElem = document.createElement('li');
+  postElem.className = 'list-group-item d-flex justify-content-between align-items-start border-0 border-end-0';
+
+  const linkElem = document.createElement('a');
+  linkElem.className = 'fw-bold';
+  linkElem.setAttribute('href', link);
+  linkElem.setAttribute('rel', 'noopener noreferrer');
+  linkElem.setAttribute('target', '_blank');
+  linkElem.dataset.id = id;
+  linkElem.textContent = title;
+
+  const viewButtonElem = document.createElement('button');
+  viewButtonElem.className = 'btn btn-outline-primary btn-sm';
+  viewButtonElem.setAttribute('type', 'button');
+  viewButtonElem.dataset.bsToggle = 'modal';
+  viewButtonElem.dataset.bsTarget = '#modal';
+  viewButtonElem.dataset.id = id;
+  viewButtonElem.textContent = i18n.t('postViewButton');
+
+  postElem.append(linkElem, viewButtonElem);
+
+  return postElem;
 };
 
 const renderList = (container, list) => {
   container.innerHTML = '';
 
-  const html = `
-    <div class="card border-0">
-      <div class="card-body">
-        <h2 class="card-title h4">${list.title}</h2>
-      </div>
-      <ul class="list-group border-0 rounded-0">
-        ${list.items.reduce((str, item) => `${list.renderItem(item)}${str}`, '')}
-      </ul>
-    </div>
-  `;
+  const cardElem = document.createElement('div');
+  cardElem.className = 'card border-0';
 
-  container.insertAdjacentHTML('afterbegin', html);
+  const cardBodyElem = document.createElement('div');
+  cardBodyElem.className = 'card-body';
+
+  const cardTitleElem = document.createElement('h2');
+  cardTitleElem.className = 'card-title h4';
+  cardTitleElem.textContent = list.title;
+
+  const listElem = document.createElement('ul');
+  listElem.className = 'list-group border-0 rounded-0';
+
+  cardElem.append(cardBodyElem, listElem);
+  cardBodyElem.append(cardTitleElem);
+  listElem.append(...list.items.toReversed().map((item) => list.renderItem(item)));
+
+  container.append(cardElem);
 };
 
 const makeList = (title, items, renderItem) => ({ title, items, renderItem });
@@ -88,10 +112,14 @@ const renderFeeds = (state, elems, i18n) => {
 };
 
 const renderPosts = (state, elems, i18n) => {
-  renderList(
-    elems.posts,
-    makeList(i18n.t('posts'), state.data.posts, (data) => renderPost(data, i18n)),
-  );
+  const postsData = state.data.posts;
+
+  if (postsData.length !== 0) {
+    renderList(
+      elems.posts,
+      makeList(i18n.t('posts'), postsData, (data) => renderPost(data, i18n)),
+    );
+  }
 };
 
 const renderVisitedPosts = (state, elems) => {
@@ -150,6 +178,10 @@ const getRenderFunc = (elems, i18n) => (state, path) => {
       break;
     case ('ui.modal.postId'):
       renderModal(state, elems, i18n);
+      break;
+    case ('data.posts'):
+      renderPosts(state, elems, i18n);
+      renderVisitedPosts(state, elems);
       break;
     default:
       renderAll(state, elems, i18n);

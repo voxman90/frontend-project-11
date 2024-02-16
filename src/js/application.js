@@ -42,7 +42,7 @@ const runApp = (container) => {
         const elems = getElems(container);
         const view = getRenderFunc(elems, i18nextInstance);
         const state = structuredClone(INITIAL_STATE);
-        const watchedState = getWatchedState(state, view);
+        const watchedState = getWatchedState(state, view, i18nextInstance);
         addListeners(elems, watchedState);
         updateFeeds(state, view);
       });

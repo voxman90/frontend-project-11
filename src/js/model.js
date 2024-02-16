@@ -6,7 +6,6 @@ import * as yup from 'yup';
 import onChange from 'on-change';
 import axios from 'axios';
 
-import { errorCodes } from './utils.js';
 import parseTextToRssFeedData from './parser.js';
 
 const FEED_UPDATE_TIMEOUT_MS = 5000;
@@ -15,16 +14,23 @@ const FEED_ID_PREFIX = 'FEED_';
 
 const urlSchema = yup.string().required().url();
 
+const errorCodes = {
+  ALREADY_PROCESSED_URL: 'already processed url',
+  INVALID_URL: 'invalid url',
+  NETWORK_ERROR: 'network error',
+  NOT_VALID_RSS_FEED: 'not valid rss feed',
+};
+
 const formStatus = {
-  DEFAULT: 0,
-  SUCCESS: 1,
-  VALIDATION_FAILURE: 2,
-  FAILURE: 3,
+  DEFAULT: 'default',
+  FAILURE: 'failure',
+  SUCCESS: 'success',
+  VALIDATION_FAILURE: 'validation failure',
 };
 
 const requestStatus = {
-  READY: 0,
-  PENDING: 1,
+  PENDING: 'pending',
+  READY: 'ready',
 };
 
 const validateUrl = (unknown) => urlSchema.validate(unknown)
@@ -34,7 +40,8 @@ const validateUrl = (unknown) => urlSchema.validate(unknown)
   });
 
 const checkUniqnessOfUrl = (checkedUrl, state) => {
-  if (state.data.feeds.some(({ url }) => url === checkedUrl)) {
+  const isProcessedUrl = state.data.feeds.some(({ url }) => url === checkedUrl);
+  if (isProcessedUrl) {
     throw errorCodes.ALREADY_PROCESSED_URL;
   }
 
@@ -62,13 +69,13 @@ const isRequestSuccessfull = (response) => {
   return Object.hasOwn(data, 'contents');
 };
 
-const sendHttpRequest = (url) => axios.get(getProxiedUrl(url))
+const sendHttpRequest = (url, i18n) => axios.get(getProxiedUrl(url))
   .then((response) => {
     if (isRequestSuccessfull(response)) {
       return { ...response, url };
     }
 
-    throw response.data.status?.http_code ?? 'There is no http_code in the response';
+    throw new Error(response.data.status?.http_code ?? i18n.t('consoleErrors.noHttpCode'));
   })
   .catch((reason) => {
     console.error(reason);
@@ -88,11 +95,11 @@ const parseResponseDataToRssFeedData = (response) => {
 };
 
 const addPosts = (state, posts, feedId) => {
-  const markedPosts = posts.reverse().map((post) => (
+  const markedPosts = posts.map((post) => (
     { ...post, feedId, id: _.uniqueId() }
   ));
 
-  state.data.posts.push(...markedPosts);
+  state.data.posts.push(...markedPosts.toReversed());
 };
 
 const addRssFeed = (state, feedData) => {
@@ -125,7 +132,7 @@ const processError = (state, errorCode) => {
   }
 };
 
-const getWatchedState = (state, render) => onChange(state, (path, value, previousValue) => {
+const getWatchedState = (state, render, i18n) => onChange(state, (path, value, previousValue) => {
   switch (path) {
     case ('ui.form.submitedValue'):
       if (state.requestStatus === requestStatus.READY) {
@@ -134,14 +141,16 @@ const getWatchedState = (state, render) => onChange(state, (path, value, previou
 
         validateUrl(value)
           .then((url) => checkUniqnessOfUrl(url, state))
-          .then((url) => sendHttpRequest(url))
+          .then((url) => sendHttpRequest(url, i18n))
           .then((response) => parseResponseDataToRssFeedData(response))
           .then((rssFeedData) => addRssFeed(state, rssFeedData))
           .then(() => { state.ui.form.status = formStatus.SUCCESS; })
           .catch((errorCode) => processError(state, errorCode))
           .finally(() => {
-            state.ui.form.submitedValue = null;
             state.requestStatus = requestStatus.READY;
+            render(state, 'requestStatus');
+
+            state.ui.form.submitedValue = null;
             render(state, path);
           });
       }
@@ -169,6 +178,7 @@ const getRecentPostDate = (state, feedData) => {
 const addNewPosts = (state, newFeedData, currFeedData) => {
   const currFeedRecentPostDate = getRecentPostDate(state, currFeedData);
   const newPosts = newFeedData.posts.filter(({ pubDate }) => pubDate > currFeedRecentPostDate);
+
   addPosts(state, newPosts, currFeedData.id);
 };
 
@@ -181,12 +191,13 @@ const updateFeeds = (state, render) => Promise.allSettled(
   )),
 )
   .then(() => {
-    render(state);
+    render(state, 'data.posts');
     setTimeout(() => { updateFeeds(state, render); }, FEED_UPDATE_TIMEOUT_MS);
   });
 
 export default getWatchedState;
 export {
+  errorCodes,
   formStatus,
   requestStatus,
   getWatchedState,

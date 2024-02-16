@@ -2,8 +2,10 @@ import _ from 'lodash';
 
 const parseTextToRssFeedData = (drawData) => {
   const xml = new window.DOMParser().parseFromString(drawData, 'text/xml');
-  if (xml.querySelector('parsererror')) {
-    throw Error('Parse error');
+
+  const errorNode = xml.querySelector('parsererror');
+  if (errorNode) {
+    throw Error(`Parse error: ${errorNode.textContent}`);
   }
 
   if (!xml.querySelector('rss')) {
