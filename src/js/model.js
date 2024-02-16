@@ -97,9 +97,9 @@ const parseResponseDataToRssFeedData = (response) => {
 const addPosts = (state, posts, feedId) => {
   const markedPosts = posts.map((post) => (
     { ...post, feedId, id: _.uniqueId() }
-  ));
+  )).reverse();
 
-  state.data.posts.push(...markedPosts.toReversed());
+  state.data.posts.push(...markedPosts);
 };
 
 const addRssFeed = (state, feedData) => {

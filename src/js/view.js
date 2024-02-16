@@ -97,12 +97,15 @@ const renderList = (container, list) => {
 
   cardElem.append(cardBodyElem, listElem);
   cardBodyElem.append(cardTitleElem);
-  listElem.append(...list.items.toReversed().map((item) => list.renderItem(item)));
+  listElem.append(...list.items);
 
   container.append(cardElem);
 };
 
-const makeList = (title, items, renderItem) => ({ title, items, renderItem });
+const makeList = (title, items, renderItem) => ({
+  title,
+  items: items.map((item) => renderItem(item)).reverse(),
+});
 
 const renderFeeds = (state, elems, i18n) => {
   renderList(
