@@ -9,28 +9,44 @@ const toggleInput = (state, elems) => {
   elems.submitButton.disabled = isRequestPending;
 };
 
-const renderForm = (state, elems, i18n) => {
+const renderFeedbackMsg = (state, elems, i18n) => {
   const { status, errorCode } = state.ui.form;
+  const { feedback } = elems;
 
-  elems.feedback.classList.remove('text-danger', 'text-success');
-  elems.urlInput.classList.remove('is-invalid');
+  const feedbackMsg = (status === formStatus.SUCCESS)
+    ? i18n.t('feedback.success')
+    : i18n.t(`feedback.errors.${errorCode}`);
+
+  feedback.textContent = feedbackMsg;
+};
+
+const renderForm = (state, elems, i18n) => {
+  const { status } = state.ui.form;
+  const {
+    feedback,
+    rssForm,
+    urlInput,
+  } = elems;
+
+  feedback.classList.remove('text-danger', 'text-success');
+  urlInput.classList.remove('is-invalid');
 
   switch (status) {
     case (formStatus.SUCCESS):
-      elems.rssForm.reset();
-      elems.urlInput.focus();
-      elems.feedback.classList.add('text-success');
-      elems.feedback.textContent = i18n.t('feedback.success');
+      rssForm.reset();
+      urlInput.focus();
+      feedback.classList.add('text-success');
       break;
     case (formStatus.VALIDATION_FAILURE):
-      elems.urlInput.classList.add('is-invalid');
+      urlInput.classList.add('is-invalid');
     case (formStatus.FAILURE): {
-      elems.feedback.classList.add('text-danger');
-      elems.feedback.textContent = i18n.t(`feedback.errors.${errorCode}`);
+      feedback.classList.add('text-danger');
       break;
     }
     default:
   }
+
+  renderFeedbackMsg(state, elems, i18n);
 };
 
 const renderFeed = (feedData) => {
@@ -114,17 +130,6 @@ const renderFeeds = (state, elems, i18n) => {
   );
 };
 
-const renderPosts = (state, elems, i18n) => {
-  const postsData = state.data.posts;
-
-  if (postsData.length !== 0) {
-    renderList(
-      elems.posts,
-      makeList(i18n.t('posts'), postsData, (data) => renderPost(data, i18n)),
-    );
-  }
-};
-
 const renderVisitedPosts = (state, elems) => {
   const { visitedPostsId } = state.ui;
 
@@ -139,12 +144,14 @@ const renderVisitedPosts = (state, elems) => {
     });
 };
 
-const renderAll = (state, elems, i18n) => {
-  renderForm(state, elems, i18n);
+const renderPosts = (state, elems, i18n) => {
+  const postsData = state.data.posts;
 
-  if (state.data.feeds.length !== 0) {
-    renderFeeds(state, elems, i18n);
-    renderPosts(state, elems, i18n);
+  if (postsData.length !== 0) {
+    renderList(
+      elems.posts,
+      makeList(i18n.t('posts'), postsData, (data) => renderPost(data, i18n)),
+    );
     renderVisitedPosts(state, elems);
   }
 };
@@ -158,20 +165,13 @@ const renderModal = (state, elems) => {
   elems.modal.querySelector('.modal-footer > a').setAttribute('href', link);
 };
 
-const getElems = (container) => ({
-  modal: container.querySelector('.modal'),
-  rssForm: container.querySelector('.rss-form'),
-  urlInput: container.querySelector('#url-input'),
-  submitButton: container.querySelector('.rss-form button[type="submit"]'),
-  feedback: container.querySelector('.feedback'),
-  posts: container.querySelector('.posts'),
-  feeds: container.querySelector('.feeds'),
-});
-
 const getRenderFunc = (elems, i18n) => (state, path) => {
   switch (path) {
-    case ('ui.form.submitedValue'):
-      renderAll(state, elems, i18n);
+    case ('ui.form.status'):
+      renderForm(state, elems, i18n);
+      break;
+    case ('ui.form.errorCode'):
+      renderFeedbackMsg(state, elems, i18n);
       break;
     case ('requestStatus'):
       toggleInput(state, elems, i18n);
@@ -182,16 +182,14 @@ const getRenderFunc = (elems, i18n) => (state, path) => {
     case ('ui.modal.postId'):
       renderModal(state, elems, i18n);
       break;
+    case ('data.feeds'):
+      renderFeeds(state, elems, i18n);
+      break;
     case ('data.posts'):
       renderPosts(state, elems, i18n);
-      renderVisitedPosts(state, elems);
       break;
     default:
-      renderAll(state, elems, i18n);
   }
 };
 
-export {
-  getRenderFunc,
-  getElems,
-};
+export default getRenderFunc;
