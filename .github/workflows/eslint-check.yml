@@ -4,12 +4,10 @@ on:
   push:
     branches:
       - '**'
-    tags:
-      - '**'
 
 jobs:
-  build:
+  run-lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Run lint
-        run: make lint
+      - uses: actions/checkout@v3
+      - run: make lint
