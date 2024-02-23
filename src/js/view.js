@@ -96,8 +96,6 @@ const renderPost = (postData, i18n) => {
 };
 
 const renderList = (container, list) => {
-  container.innerHTML = '';
-
   const cardElem = document.createElement('div');
   cardElem.className = 'card border-0';
 
@@ -115,7 +113,7 @@ const renderList = (container, list) => {
   cardBodyElem.append(cardTitleElem);
   listElem.append(...list.items);
 
-  container.append(cardElem);
+  container.replaceChildren(cardElem);
 };
 
 const makeList = (title, items, renderItem) => ({

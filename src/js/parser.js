@@ -15,12 +15,15 @@ const parseTextToRssFeedData = (drawData) => {
     description: xml.querySelector('channel > description').textContent,
     link: xml.querySelector('channel > link').textContent,
     posts: Array.from(xml.querySelectorAll('item'))
-      .map((item) => ({
-        title: item.querySelector('title')?.textContent,
-        description: item.querySelector('description')?.textContent,
-        link: item.querySelector('link')?.textContent,
-        pubDate: new Date(item.querySelector('pubDate')?.textContent ?? new Date()),
-      })),
+      .map((item) => {
+        const pubDate = item.querySelector('pubDate')?.textContent;
+        return ({
+          title: item.querySelector('title')?.textContent,
+          description: item.querySelector('description')?.textContent,
+          link: item.querySelector('link')?.textContent,
+          pubDate: (pubDate) ? new Date(pubDate) : null,
+        });
+      }),
   };
 
   return rssFeedData;

@@ -5,11 +5,7 @@ import _ from 'lodash';
 import * as yup from 'yup';
 import axios from 'axios';
 
-import {
-  errorCodes,
-  formStatus,
-  requestStatus,
-} from './model.js';
+import { errorCodes, formStatus, requestStatus } from './model.js';
 import parseTextToRssFeedData from './parser.js';
 
 const FEED_UPDATE_TIMEOUT_MS = 5000;
@@ -168,10 +164,24 @@ const getRecentPostDate = (state, feedData) => {
   return recentPost.pubDate;
 };
 
+const findNewPostsByDate = (newFeedData, currFeedRecentPostDate) => (
+  newFeedData.posts.filter(({ pubDate }) => pubDate > currFeedRecentPostDate)
+);
+
+const findNewPostsByTitle = (newFeedData, currFeedData) => {
+  const currFeedDataPostsTitles = currFeedData.map(({ title }) => title);
+  return newFeedData.posts.filter(({ title }) => !currFeedDataPostsTitles.includes(title));
+};
+
 const addNewPosts = (state, newFeedData, currFeedData) => {
   const currFeedRecentPostDate = getRecentPostDate(state, currFeedData);
-  const newPosts = newFeedData.posts.filter(({ pubDate }) => pubDate > currFeedRecentPostDate);
-  if (newPosts.length === 0) return;
+  const newPosts = (currFeedRecentPostDate)
+    ? findNewPostsByDate(newFeedData, currFeedRecentPostDate)
+    : findNewPostsByTitle(newFeedData, currFeedData);
+
+  if (newPosts.length === 0) {
+    return;
+  }
 
   addPosts(state, newPosts, currFeedData.id);
 };
